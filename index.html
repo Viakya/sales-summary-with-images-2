@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>CSV Viewer with Images</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #ffffff;
+      --fg: #1f2937;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --border: #e5e7eb;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0b0f14;
+        --fg: #e5e7eb;
+        --muted: #9ca3af;
+        --accent: #60a5fa;
+        --border: #1f2937;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.5;
+    }
+    header {
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+    }
+    header h1 {
+      margin: 0 0 .25rem 0;
+      font-size: 1.25rem;
+    }
+    header p {
+      margin: 0;
+      color: var(--muted);
+      font-size: .95rem;
+    }
+    main {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 1rem 1.25rem 2rem;
+      display: grid;
+      gap: 1.25rem;
+    }
+    .images {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: .75rem;
+      align-items: start;
+    }
+    figure {
+      margin: 0;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      background: color-mix(in srgb, var(--bg), var(--fg) 2%);
+    }
+    figure img {
+      display: block;
+      width: 100%;
+      height: auto;
+      object-fit: contain;
+      background: #fff0; /* no background */
+    }
+    figure figcaption {
+      padding: .5rem .75rem;
+      font-size: .9rem;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+    }
+    .panel {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+    }
+    .row {
+      display: flex;
+      gap: .75rem;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: .5rem;
+    }
+    #status {
+      color: var(--muted);
+      font-size: .95rem;
+    }
+    .controls {
+      display: flex;
+      gap: .5rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    label.button {
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .5rem .75rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      cursor: pointer;
+      user-select: none;
+    }
+    label.button:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    input[type="file"] {
+      display: none;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+    }
+    thead th {
+      text-align: left;
+      background: color-mix(in srgb, var(--bg), var(--fg) 4%);
+    }
+    th, td {
+      padding: .6rem .7rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      font-variant-numeric: tabular-nums;
+    }
+    tbody tr:hover td {
+      background: color-mix(in srgb, var(--bg), var(--fg) 2.5%);
+    }
+    footer {
+      padding: 1.25rem;
+      text-align: center;
+      color: var(--muted);
+      font-size: .9rem;
+      border-top: 1px solid var(--border);
+    }
+    a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0,0,0,0);
+      white-space: nowrap;
+      border-width: 0;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>CSV Viewer + Images</h1>
+    <p>Automatically loads data.csv, displays it in a table, and shows two images bundled with the app.</p>
+  </header>
+
+  <main>
+    <section aria-labelledby="images-title" class="images">
+      <h2 id="images-title" class="sr-only">Images</h2>
+      <figure>
+        <img src="photo1.png" alt="Photo 1" loading="eager" />
+        <figcaption>photo1.png</figcaption>
+      </figure>
+      <figure>
+        <img src="photo2.png" alt="Photo 2" loading="eager" />
+        <figcaption>photo2.png</figcaption>
+      </figure>
+    </section>
+
+    <section aria-labelledby="data-title" class="panel">
+      <div class="row">
+        <h2 id="data-title" style="margin:0;">CSV Data</h2>
+        <div class="controls">
+          <label class="button" for="fileInput" title="Load a CSV file from your device">
+            📄 Load CSV manually
+          </label>
+          <input id="fileInput" type="file" accept=".csv,text/csv" />
+        </div>
+      </div>
+      <div id="status" role="status" aria-live="polite">Loading data.csv…</div>
+      <div id="table-container" style="margin-top:.5rem; overflow:auto;"></div>
+    </section>
+  </main>
+
+  <footer>
+    <span>Tip: If data.csv doesn’t load, serve this folder with a local web server (e.g., Python http.server).</span>
+  </footer>
+
+  <script>
+    // Minimal CSV parser with support for quoted fields and escaped quotes.
+    function parseCSV(text) {
+      const rows = [];
+      let row = [];
+      let field = "";
+      let inQuotes = false;
+
+      for (let i = 0; i < text.length; i++) {
+        const c = text[i];
+        if (inQuotes) {
+          if (c === '"') {
+            if (text[i + 1] === '"') { // escaped quote
+              field += '"';
+              i++;
+            } else {
+              inQuotes = false;
+            }
+          } else {
+            field += c;
+          }
+        } else {
+          if (c === '"') {
+            inQuotes = true;
+          } else if (c === ",") {
+            row.push(field);
+            field = "";
+          } else if (c === "\n") {
+            row.push(field);
+            field = "";
+            // ignore pure empty trailing rows
+            if (!(row.length === 1 && row[0] === "")) {
+              rows.push(row);
+            }
+            row = [];
+          } else if (c === "\r") {
+            // ignore CR (will be handled when \n arrives or at end)
+          } else {
+            field += c;
+          }
+        }
+      }
+
+      // flush last field/row if any
+      if (inQuotes) {
+        // Unbalanced quotes; still push what we have
+        inQuotes = false;
+      }
+      if (field.length > 0 || row.length > 0) {
+        row.push(field);
+        rows.push(row);
+      }
+
+      return rows;
+    }
+
+    function renderTable(rows) {
+      const container = document.getElementById("table-container");
+      container.innerHTML = "";
+
+      if (!rows || rows.length === 0 || (rows.length === 1 && rows[0].every(c => String(c).trim() === ""))) {
+        container.textContent = "No data to display.";
+        return;
+      }
+
+      const table = document.createElement("table");
+
+      const thead = document.createElement("thead");
+      const headerRow = document.createElement("tr");
+      const header = rows[0];
+      header.forEach(h => {
+        const th = document.createElement("th");
+        th.textContent = h;
+        headerRow.appendChild(th);
+      });
+      thead.appendChild(headerRow);
+      table.appendChild(thead);
+
+      const tbody = document.createElement("tbody");
+      for (let i = 1; i < rows.length; i++) {
+        const r = rows[i];
+        if (!r || r.length === 0 || r.every(c => String(c).trim() === "")) continue;
+        const tr = document.createElement("tr");
+        for (let j = 0; j < header.length; j++) {
+          const td = document.createElement("td");
+          td.textContent = r[j] != null ? r[j] : "";
+          tr.appendChild(td);
+        }
+        tbody.appendChild(tr);
+      }
+      table.appendChild(tbody);
+
+      container.appendChild(table);
+    }
+
+    async function fetchAndRenderCSV(url) {
+      const status = document.getElementById("status");
+      try {
+        status.textContent = `Loading ${url}…`;
+        const res = await fetch(url, { cache: "no-store" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const text = await res.text();
+        const rows = parseCSV(text);
+        renderTable(rows);
+        const rowCount = Math.max(rows.length - 1, 0);
+        status.textContent = `Loaded ${url} (${rowCount} data row${rowCount === 1 ? "" : "s"}).`;
+      } catch (err) {
+        console.warn("Failed to fetch CSV:", err);
+        status.textContent = `Could not load ${url}. Use “Load CSV manually” to pick a file.`;
+      }
+    }
+
+    function setupFilePicker() {
+      const input = document.getElementById("fileInput");
+      const status = document.getElementById("status");
+      input.addEventListener("change", async (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        try {
+          const text = await file.text();
+          const rows = parseCSV(text);
+          renderTable(rows);
+          const rowCount = Math.max(rows.length - 1, 0);
+          status.textContent = `Loaded ${file.name} (${rowCount} data row${rowCount === 1 ? "" : "s"}).`;
+        } catch (err) {
+          console.error("Error reading file:", err);
+          status.textContent = "Failed to read the selected file.";
+        }
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      setupFilePicker();
+      fetchAndRenderCSV("data.csv");
+    });
+  </script>
+</body>
+</html>
